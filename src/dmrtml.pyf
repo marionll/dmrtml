@@ -57,8 +57,9 @@ python module dmrtml_for ! in
             real*8 intent(in)                         :: soilp_Q
             real*8 intent(in)                         :: soilp_N
             real*8 intent(in)                         :: Tbatmo
-            real*8 intent(in)                         :: eps_ice_r,eps_ice_i
-
+            !real*8 intent(in)                         :: eps_ice_r,eps_ice_i
+            real*8 dimension(l),intent(in),depend(l)  :: eps_ice_r,eps_ice_i
+            
         end subroutine dmrtml_pywrapper
 
 

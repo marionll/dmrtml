@@ -1,25 +1,25 @@
 #----------------------------------------------------------------------------#
-#                                        #
-# DMRT-ML (Dense Media Radiative Transfer - Multi-Layer)             #
-# Copyright (c), all rights reserved, 2007-2012,  Ghislain Picard        #
-# email: Ghislain.Picard@ujf-grenoble.fr                     #
-#                                        #
-# Main contributors: Ludovic Brucker, Alexandre Roy, Florent Dupont      #
-#                                        #
-#                                        #
+#                                                                            #
+# DMRT-ML (Dense Media Radiative Transfer - Multi-Layer)                     #
+# Copyright (c), all rights reserved, 2007-2012,  Ghislain Picard            #
+# email: Ghislain.Picard@ujf-grenoble.fr                                     #
+#                                                                            #
+# Main contributors: Ludovic Brucker, Alexandre Roy, Florent Dupont          #
+#                                                                            #
+#                                                                            #
 # Licensed under the terms of the GNU General Public License version 3:      #
-# http://www.opensource.org/licenses/gpl-3.0.html                #
-#                                        #
+# http://www.opensource.org/licenses/gpl-3.0.html                            #
+#                                                                            #
 # dmrtml'url: http://lgge.osug.fr/~picard/dmrtml/                            #
 #                                                                            #
-# Recommended citation:                              #
+# Recommended citation:                                                      #
 #    G. Picard, L. Brucker, A. Roy, F. Dupont, M. Fily, and A. Royer,        #
 #    Simulation of the microwave emission of multi-layered snowpacks using   #
 #    the Dense Media Radiative Transfer theory: the DMRT-ML model,           #
 #    Geoscientific Model Development, 6, 1061-1078, 2013                     #
 #    doi:10.5194/gmd-6-1061-2013                                             #
 #    http://www.geosci-model-dev.net/6/1061/2013/gmd-6-1061-2013.html        #
-#                                        #
+#                                                                            #
 #----------------------------------------------------------------------------#
 
 
@@ -39,14 +39,17 @@ def run(freq, n, depth, density, radius, temp, tau=NONSTICKY, fwetness=0, medium
     if soilp is None:
         soilp = SoilParams()
 
-    depth, density, radius, temp, tau, fwetness, medium = _clean_parameters(depth, density, radius, temp, tau, fwetness, medium)
+    eps_ice_r, eps_ice_i = eps_ice
+
+    depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i = _clean_parameters(depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i)
 
     restuple = dmrtml_pywrapper(freq, n, depth, density, radius, temp, tau, fwetness, medium, dist,
                                            soilp.imodel, soilp.temp, soilp.eps[0], soilp.eps[1],
                                            soilp.sigma, soilp.SM, soilp.sand, soilp.clay, soilp.dm_rho,
                                            soilp.Q, soilp.N,
                                            tbatmodown,
-                                           eps_ice[0], eps_ice[1])
+                                           # eps_ice[0], eps_ice[1])
+                                           eps_ice_r, eps_ice_i)
 
     return DMRTMLResult(restuple)
 
@@ -252,7 +255,7 @@ class FlatIceParams(SoilParams):
             self.eps = eps
 
 
-def _clean_parameters(depth, density, radius, temp, tau, fwetness, medium):
+def _clean_parameters(depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i):
 
     depth = numpy.asfarray(depth)
 
@@ -282,4 +285,12 @@ def _clean_parameters(depth, density, radius, temp, tau, fwetness, medium):
         m[:] = medium
         medium = m
 
-    return depth, density, radius, temp, tau, fwetness, medium
+    eps_ice_r = numpy.asfarray(eps_ice_r)
+    if eps_ice_r.size == 1:
+        eps_ice_r = eps_ice_r*numpy.ones(depth.size)
+
+    eps_ice_i = numpy.asfarray(eps_ice_i)
+    if eps_ice_i.size == 1:
+        eps_ice_i = eps_ice_i*numpy.ones(depth.size)
+        
+    return depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i

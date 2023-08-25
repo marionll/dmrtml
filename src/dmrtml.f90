@@ -100,7 +100,7 @@ subroutine dmrtml(frequency,l,n,depth,density,radius,temperature,&
 
   logical,intent(in),optional                :: dist        ! use rayleigh distribution instead of monodispere particules
   real*8,intent(in),optional                 :: Tbatmodown ! atmosphere brightness temperature 
-  complex*16,intent(in),optional             :: Eice
+  complex*16,intent(in),dimension(l),optional :: Eice
   type(soilparams),intent(in),optional       :: soilp ! soil parameters (see mod_soil)
   real*8,intent(out),dimension(n,l),optional :: profileV,profileH ! ! brightness temperature profile
 
@@ -154,10 +154,10 @@ subroutine dmrtml(frequency,l,n,depth,density,radius,temperature,&
 
      if (present(dist) .and. dist) then
         call dmrtparameters_dist(frequency,temperature(k),f,radius(k),&
-             tau_,fwetness_,medium_,Eo,eps(k),albedo(k),ke(k),Eice)
+             tau_,fwetness_,medium_,Eo,eps(k),albedo(k),ke(k),Eice(k))
      else
         call dmrtparameters_grodyapproach(frequency,temperature(k),f,radius(k),&
-             tau_,fwetness_,medium_,Eo,eps(k),albedo(k),ke(k),Eice)
+             tau_,fwetness_,medium_,Eo,eps(k),albedo(k),ke(k),Eice(k))
      endif
   enddo
 
@@ -290,10 +290,10 @@ subroutine dmrtml_pywrapper(frequency,l,n,depth,density,radius,temperature,&
   real*8,intent(in)              :: soilp_sand,soilp_clay,soilp_dm_rho
   real*8,intent(in)              :: soilp_Q,soilp_N
   real*8,intent(in)              :: Tbatmodown
-  real*8,intent(in)              :: eps_ice_r,eps_ice_i
+  real*8,intent(in),dimension(l) :: eps_ice_r,eps_ice_i
   !------------------------------------------------------------------------
   type(soilparams) :: soilp
-  complex*16       :: Eice
+  complex*16,dimension(l) :: Eice
 
   soilp%imodel = soilp_imodel
   soilp%temp   = soilp_temperature
