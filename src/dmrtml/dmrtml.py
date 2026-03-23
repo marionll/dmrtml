@@ -23,7 +23,7 @@
 #----------------------------------------------------------------------------#
 
 
-from .dmrtml_for import dmrtml_pywrapper, albedobeta_pywrapper, icedielectric_pywrapper, compute_streams_pywrapper
+from dmrtml_for import dmrtml_pywrapper, albedobeta_pywrapper, icedielectric_pywrapper, compute_streams_pywrapper
 import numpy
 
 NONSTICKY = 1e6

@@ -1,0 +1,45 @@
+[build-system]
+requires = [
+  "setuptools>=68",
+  "wheel",
+  "numpy>=1.23",
+  "meson>=1.2",
+  "ninja",
+  "charset_normalizer",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dmrtml"
+version = "0.1"
+description = "DMRT-ML: Dense Media Radiative Transfer - Multi Layers"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+            {name = "Ghislain Picard", email = "ghislain.picard@univ-grenoble-alpes.fr"},
+            ]
+urls = {Homepage = "https://snow.univ-grenoble-alpes.fr/dmrtml", Repository = "https://github.com/ghislainp/dmrtml"}
+license = "GPL-3.0-only"
+license-files = ["LICENSE.txt"]
+keywords = ["microwave", "snow", "radiative-transfer", "fortran", "f2py"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Fortran",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "numpy",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "numpy"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["dmrtml"]
+
+[tool.setuptools.package-data]
+"*" = ["*.so", "*.pyd", "*.dylib"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
