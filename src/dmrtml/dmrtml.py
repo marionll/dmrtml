@@ -1,73 +1,108 @@
-#----------------------------------------------------------------------------#
-#                                                                            #
-# DMRT-ML (Dense Media Radiative Transfer - Multi-Layer)                     #
-# Copyright (c), all rights reserved, 2007-2012,  Ghislain Picard            #
-# email: Ghislain.Picard@ujf-grenoble.fr                                     #
-#                                                                            #
-# Main contributors: Ludovic Brucker, Alexandre Roy, Florent Dupont          #
-#                                                                            #
-#                                                                            #
-# Licensed under the terms of the GNU General Public License version 3:      #
-# http://www.opensource.org/licenses/gpl-3.0.html                            #
-#                                                                            #
-# dmrtml'url: http://lgge.osug.fr/~picard/dmrtml/                            #
-#                                                                            #
-# Recommended citation:                                                      #
-#    G. Picard, L. Brucker, A. Roy, F. Dupont, M. Fily, and A. Royer,        #
-#    Simulation of the microwave emission of multi-layered snowpacks using   #
-#    the Dense Media Radiative Transfer theory: the DMRT-ML model,           #
-#    Geoscientific Model Development, 6, 1061-1078, 2013                     #
-#    doi:10.5194/gmd-6-1061-2013                                             #
-#    http://www.geosci-model-dev.net/6/1061/2013/gmd-6-1061-2013.html        #
-#                                                                            #
-#----------------------------------------------------------------------------#
+"""
+DMRT-ML (Dense Media Radiative Transfer - Multi-Layer)
+Copyright (c), all rights reserved, 2007-2012,  Ghislain Picard
+email: ghislain.picard@univ-grenoble-alpes.fr
 
+Main contributors: Ludovic Brucker, Alexandre Roy, Florent Dupont
 
-from dmrtml_for import dmrtml_pywrapper, albedobeta_pywrapper, icedielectric_pywrapper, compute_streams_pywrapper
-import numpy
+Licensed under the terms of the GNU General Public License version 3:
+http://www.opensource.org/licenses/gpl-3.0.html
+
+dmrtml'url: https://snow.univ-grenoble-alpes.fr/dmrtml
+
+Recommended citation:
+   Picard, G., Brucker, L., Roy, A., Dupont, F., Fily, M., Royer, A., and Harlow, C.,
+   Simulation of the microwave emission of multi-layered snowpacks using the Dense Media Radiative Transfer theory: the DMRT-ML model,
+   Geoscientific Model Development, 6, 1061-1078, 2013, https://doi.org/10.5194/gmd-6-1061-2013
+"""
+
+from dmrtml_for import (
+    dmrtml_pywrapper,
+    albedobeta_pywrapper,
+    icedielectric_pywrapper,
+    compute_streams_pywrapper,
+)
+import numpy as np
 
 NONSTICKY = 1e6
 
-#
-# Main routine to call dmrtml
-#
 
-
-def run(freq, n, depth, density, radius, temp, tau=NONSTICKY, fwetness=0, medium='S',
-           dist=False, soilp=None, tbatmodown=0, eps_ice=(0.0, 0.0)):
-    """run dmrtml and return a DMRTMLResult object"""
+def run(
+    freq,
+    n,
+    depth,
+    density,
+    radius,
+    temp,
+    tau=NONSTICKY,
+    fwetness=0,
+    medium="S",
+    dist=False,
+    soilp=None,
+    tbatmodown=0,
+    eps_ice=(0.0, 0.0),
+):
+    """
+    Run dmrtml and return a DMRTMLResult object.
+    Main routine to call dmrtml with Python.
+    """
     if soilp is None:
         soilp = SoilParams()
 
     eps_ice_r, eps_ice_i = eps_ice
 
-    depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i = _clean_parameters(depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i)
+    depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i = (
+        _clean_parameters(
+            depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i
+        )
+    )
 
-    restuple = dmrtml_pywrapper(freq, n, depth, density, radius, temp, tau, fwetness, medium, dist,
-                                           soilp.imodel, soilp.temp, soilp.eps[0], soilp.eps[1],
-                                           soilp.sigma, soilp.SM, soilp.sand, soilp.clay, soilp.dm_rho,
-                                           soilp.Q, soilp.N,
-                                           tbatmodown,
-                                           # eps_ice[0], eps_ice[1])
-                                           eps_ice_r, eps_ice_i)
+    restuple = dmrtml_pywrapper(
+        freq,
+        n,
+        depth,
+        density,
+        radius,
+        temp,
+        tau,
+        fwetness,
+        medium,
+        dist,
+        soilp.imodel,
+        soilp.temp,
+        soilp.eps[0],
+        soilp.eps[1],
+        soilp.sigma,
+        soilp.SM,
+        soilp.sand,
+        soilp.clay,
+        soilp.dm_rho,
+        soilp.Q,
+        soilp.N,
+        tbatmodown,
+        # eps_ice[0], eps_ice[1])
+        eps_ice_r,
+        eps_ice_i,
+    )
 
     return DMRTMLResult(restuple)
 
 
 def dmrtml(*args, **kwargs):
-    # a synonym for run.
+    """
+    A synonym for run.
+    """
     return run(*args, **kwargs)
-
-#
-# class returned by the dmrtml routine
-#
 
 
 class DMRTMLResult:
-    """results from the DMRTML model"""
+    """
+    Class returned by the dmrtml routine.
+    Results from the DMRTML model.
+    """
 
     def __init__(self, restuple):
-        """create a DMRTMLResult from a tuple returned by dmrtml_wrapper"""
+        """Create a DMRTMLResult from a tuple returned by dmrtml_wrapper."""
         self.TbVarr, self.TbHarr, self.mhu = restuple
         mask = self.mhu > 0
         self.TbVarr = self.TbVarr[mask]
@@ -75,44 +110,68 @@ class DMRTMLResult:
         self.mhu = self.mhu[mask]
 
     def TbH(self, theta=None):
-        """return TbH for the angle(s) theta)"""
+        """Return TbH for the angle(s) theta)."""
         if theta is None:
             return self.TbHarr
         else:
-            return numpy.interp(theta, self.thetas(), self.TbHarr)
+            return np.interp(theta, self.thetas(), self.TbHarr)
 
     def TbV(self, theta=None):
-        """return TbV for the angle(s) theta)"""
+        """Return TbV for the angle(s) theta)."""
         if theta is None:
             return self.TbVarr
         else:
-            return numpy.interp(theta, self.thetas(), self.TbVarr)
+            return np.interp(theta, self.thetas(), self.TbVarr)
 
     def thetas(self):
-        """return the actual zenith angles of the streams used for the calculation"""
-        return numpy.arccos(self.mhu)*180/numpy.pi
+        """Return the actual zenith angles of the streams used for the calculation."""
+        return np.arccos(self.mhu) * 180 / np.pi
 
 
-def albedobeta(frequency, density, radius, temp, tau=NONSTICKY, fwetness=0, medium='S', dist=False, grodyapproach=True):
-    """compute the albedo and extinction with the DMRT theory"""
-    return albedobeta_pywrapper(frequency, density, radius, temp,
-                                           tau, fwetness, medium, dist, grodyapproach)
+def albedobeta(
+    frequency,
+    density,
+    radius,
+    temp,
+    tau=NONSTICKY,
+    fwetness=0,
+    medium="S",
+    dist=False,
+    grodyapproach=True,
+):
+    """Compute the albedo and extinction with the DMRT theory."""
+    return albedobeta_pywrapper(
+        frequency, density, radius, temp, tau, fwetness, medium, dist, grodyapproach
+    )
 
 
-def compute_streams(freq, n, density, radius=0, temp=273,
-                    tau=NONSTICKY, fwetness=0, medium='S', dist=False):
-    """compute the streams angles used by DISORT"""
+def compute_streams(
+    freq,
+    n,
+    density,
+    radius=0,
+    temp=273,
+    tau=NONSTICKY,
+    fwetness=0,
+    medium="S",
+    dist=False,
+):
+    """Compute the streams angles used by DISORT."""
 
-    depth = numpy.ones_like(density)
-    depth, density, radius, temp, tau, fwetness, medium = _clean_parameters(depth, density, radius, temp, tau, fwetness, medium)
+    depth = np.ones_like(density)
+    depth, density, radius, temp, tau, fwetness, medium = _clean_parameters(
+        depth, density, radius, temp, tau, fwetness, medium
+    )
 
-    restuple = compute_streams_pywrapper(freq, n, density, radius, temp, tau, fwetness, medium, dist)
+    restuple = compute_streams_pywrapper(
+        freq, n, density, radius, temp, tau, fwetness, medium, dist
+    )
     return Streams(restuple)  # ! return mhu,weight,ns,outmhu,ns0
 
 
 class Streams:
     def __init__(self, restuple):
-        """create a Streams from a tuple returned by compute_streams_pywrapper"""
+        """Create a Streams from a tuple returned by compute_streams_pywrapper."""
         self.mhu, self.weight, self.ns, self.outmhu, self.ns0 = restuple
 
 
@@ -140,27 +199,27 @@ class SoilParams:
         self.temp = temp
 
     def set_soilmoisture(self, SM):
-        if not SM is None:
+        if SM is not None:
             self.SM = SM
 
     def set_soiltexture(self, sand, clay, drymatter_density):
-        if not sand is None:
+        if sand is not None:
             self.sand = sand
-        if not clay is None:
+        if clay is not None:
             self.clay = clay
-        if not drymatter_density is None:
+        if drymatter_density is not None:
             self.dm_rho = drymatter_density
 
     def set_roughness(self, sigma):
-        if not sigma is None:
+        if sigma is not None:
             self.sigma = sigma
 
     def set_QNH(self, q, n, h):
-        if not q is None:
+        if q is not None:
             self.Q = q
-        if not n is None:
+        if n is not None:
             self.N = n
-        if not h is None:
+        if h is not None:
             self.sigma = h
 
     def set_dielectricconstant(self, epsreal, epsimag=None):
@@ -170,7 +229,7 @@ class SoilParams:
             if epsimag is not None:
                 self.eps = epsreal, epsimag
             else:
-                raise Exception("invalid value type for epsreal and/or epsimag")
+                raise Exception("Invalid value type for epsreal and/or epsimag.")
 
 
 class NoSoilParams(SoilParams):
@@ -178,45 +237,68 @@ class NoSoilParams(SoilParams):
 
     def __init__(self, temperature=273):
         SoilParams.__init__(self)
-        self.imodel = 0        # imodel=0 no soil (rh=rv=0)
+        self.imodel = 0  # imodel=0 no soil (rh=rv=0)
         self.set_temperature(temperature)
 
 
 class FlatSoilParams(SoilParams):
     """Flat soil"""
 
-    def __init__(self, temperature=273, eps="epspulliainen", sand=None, clay=None, drymatter_density=None, SM=None):
+    def __init__(
+        self,
+        temperature=273,
+        eps="epspulliainen",
+        sand=None,
+        clay=None,
+        drymatter_density=None,
+        SM=None,
+    ):
         SoilParams.__init__(self)
         self.set_temperature(temperature)
 
         if eps == "epspulliainen" or eps == "epsmodel":
-            self.imodel = 2  # imodel=2 flat surface, fresnel coefficient with ESS epsilon
+            # imodel=2 flat surface, fresnel coefficient with ESS epsilon
+            self.imodel = 2
             self.set_soilmoisture(SM)
             self.set_soiltexture(sand, clay, drymatter_density)
             self.eps = 0, 0
 
         elif eps == "epsdobson":
-            self.imodel = 3  # imodel=3 flat surface, fresnel coefficient with Dobson epsilon
+            # imodel=3 flat surface, fresnel coefficient with Dobson epsilon
+            self.imodel = 3
             self.set_soilmoisture(SM)
             self.set_soiltexture(sand, clay, drymatter_density)
             self.eps = 0, 0
 
         elif eps == "epsmironov":
-            self.imodel = 4  # imodel=4 flat surface, fresnel coefficient with Mironov epsilon
+            # imodel=4 flat surface, fresnel coefficient with Mironov epsilon
+            self.imodel = 4
             self.set_soilmoisture(SM)
             self.set_soiltexture(sand, clay, drymatter_density)
             self.eps = 0, 0
 
         else:
-            self.imodel = 1  # imodel=1 flat surface, fresnel coefficient with prescribed eps
+            # imodel=1 flat surface, fresnel coefficient with prescribed eps
+            self.imodel = 1
             self.eps = eps
 
 
 class HUTRoughSoilParams(FlatSoilParams):
     """Rough soil"""
 
-    def __init__(self, temperature=273, eps="epspulliainen", sand=None, clay=None, drymatter_density=None, SM=None, sigma=None):
-        FlatSoilParams.__init__(self, temperature, eps, sand, clay, drymatter_density, SM)
+    def __init__(
+        self,
+        temperature=273,
+        eps="epspulliainen",
+        sand=None,
+        clay=None,
+        drymatter_density=None,
+        SM=None,
+        sigma=None,
+    ):
+        FlatSoilParams.__init__(
+            self, temperature, eps, sand, clay, drymatter_density, SM
+        )
         #        print "HUTRoughSoilParams",self.eps
         # imodel=101 HUT roughsoil reflectivity for rough surface with prescribed eps
         # imodel=102 HUT roughsoil reflectivity for rough surface with EPSS eps
@@ -229,8 +311,21 @@ class HUTRoughSoilParams(FlatSoilParams):
 class QNHRoughSoilParams(FlatSoilParams):
     """Rough soil"""
 
-    def __init__(self, temperature=273, eps="epspulliainen", sand=None, clay=None, drymatter_density=None, SM=None, Q=None, N=None, H=None):
-        FlatSoilParams.__init__(self, temperature, eps, sand, clay, drymatter_density, SM)
+    def __init__(
+        self,
+        temperature=273,
+        eps="epspulliainen",
+        sand=None,
+        clay=None,
+        drymatter_density=None,
+        SM=None,
+        Q=None,
+        N=None,
+        H=None,
+    ):
+        FlatSoilParams.__init__(
+            self, temperature, eps, sand, clay, drymatter_density, SM
+        )
 
         # imodel=301 HUT roughsoil reflectivity for rough surface with prescribed eps
         # imodel=302 HUT roughsoil reflectivity for rough surface with EPSS eps
@@ -249,48 +344,53 @@ class FlatIceParams(SoilParams):
 
         SoilParams.__init__(self)
         if eps == "epsmodel":
-            self.imodel = 202  # imodel=202 ice flat surface, fresnel coefficient with eps model
+            # imodel=202 ice flat surface, fresnel coefficient with eps model
+            self.imodel = 202
         else:
-            self.imodel = 201  # imodel=201 ice flat surface, fresnel coefficient with prescribed eps (same as imodel=1)
+            # imodel=201 ice flat surface, fresnel coefficient with prescribed eps (same as imodel=1)
+            self.imodel = 201
             self.eps = eps
 
 
-def _clean_parameters(depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i):
+def _clean_parameters(
+    depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i
+):
 
-    depth = numpy.asfarray(depth)
+    depth = np.asarray(depth, dtype=float)
 
-    density = numpy.asfarray(density)
+    density = np.asarray(density, dtype=float)
     if density.size == 1:
-        density = density*numpy.ones(depth.size)
+        density = density * np.ones(depth.size)
 
-    radius = numpy.asfarray(radius)
+    radius = np.asarray(radius, dtype=float)
     if radius.size == 1:
-        radius = radius*numpy.ones(depth.size)
+        radius = radius * np.ones(depth.size)
 
-    temp = numpy.asfarray(temp)
+    temp = np.asarray(temp, dtype=float)
     if temp.size == 1:
-        temp = temp*numpy.ones(depth.size)
+        temp = temp * np.ones(depth.size)
 
-    tau = numpy.asfarray(tau)
+    tau = np.asarray(tau, dtype=float)
     if tau.size == 1:
-        tau = tau*numpy.ones(depth.size)
+        tau = tau * np.ones(depth.size)
 
-    fwetness = numpy.asfarray(fwetness)
+    fwetness = np.asarray(fwetness, dtype=float)
     if fwetness.size == 1:
-        fwetness = fwetness*numpy.ones(depth.size)
+        fwetness = fwetness * np.ones(depth.size)
 
-    medium = numpy.asarray(medium)
+    medium = np.asarray(medium, dtype=object)
     if medium.size == 1:
-        m = numpy.chararray(depth.size)
-        m[:] = medium
-        medium = m
+        medium = np.full(depth.size, medium, dtype=object)
+        # m = np.chararray(depth.size)
+        # m[:] = medium
+        # medium = m
 
-    eps_ice_r = numpy.asfarray(eps_ice_r)
+    eps_ice_r = np.asarray(eps_ice_r, dtype=float)
     if eps_ice_r.size == 1:
-        eps_ice_r = eps_ice_r*numpy.ones(depth.size)
+        eps_ice_r = eps_ice_r * np.ones(depth.size)
 
-    eps_ice_i = numpy.asfarray(eps_ice_i)
+    eps_ice_i = np.asarray(eps_ice_i, dtype=float)
     if eps_ice_i.size == 1:
-        eps_ice_i = eps_ice_i*numpy.ones(depth.size)
-        
+        eps_ice_i = eps_ice_i * np.ones(depth.size)
+
     return depth, density, radius, temp, tau, fwetness, medium, eps_ice_r, eps_ice_i
